@@ -31,7 +31,7 @@ def test_detect_head_turned_left_reports_negative_yaw() -> None:
 
 
 def test_detect_head_turned_right_reports_positive_yaw() -> None:
-    mirrored = np.ascontiguousarray(cv2.flip(load_face("head_turned_left.jpg"), 1))
+    mirrored = np.ascontiguousarray(cv2.flip(load_face("head_turned_left.jpg"), 1), dtype=np.uint8)
     sample = detect_once(mirrored)
     assert sample.face_present
     assert sample.head_yaw_degrees >= 15.0
