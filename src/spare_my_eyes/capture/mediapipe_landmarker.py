@@ -24,13 +24,15 @@ class MediaPipeFaceLandmarker:
                 f"Face landmarker model not found at {model_path}; "
                 "run `uv run python -m spare_my_eyes.model_asset`"
             )
-        self._landmarker = FaceLandmarker.create_from_options(_options(model_path))
+        self._model_bytes = model_path.read_bytes()
+        self._landmarker: FaceLandmarker | None = None
         self._last_timestamp_ms = -1
 
     def detect(self, frame: Frame, timestamp: float) -> FaceSample:
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-        result = self._landmarker.detect_for_video(image, self._next_timestamp_ms(timestamp))
+        landmarker = self._open_landmarker()
+        result = landmarker.detect_for_video(image, self._next_timestamp_ms(timestamp))
         if not result.face_landmarks:
             return FaceSample.absent(timestamp)
         height, width = frame.shape[:2]
@@ -39,16 +41,25 @@ class MediaPipeFaceLandmarker:
         return _sample_from(points, result.facial_transformation_matrixes[0], timestamp)
 
     def close(self) -> None:
+        if self._landmarker is None:
+            return
         self._landmarker.close()
+        self._landmarker = None
+
+    def _open_landmarker(self) -> FaceLandmarker:
+        if self._landmarker is None:
+            self._landmarker = FaceLandmarker.create_from_options(_options(self._model_bytes))
+            self._last_timestamp_ms = -1
+        return self._landmarker
 
     def _next_timestamp_ms(self, timestamp: float) -> int:
         self._last_timestamp_ms = max(int(timestamp * 1000), self._last_timestamp_ms + 1)
         return self._last_timestamp_ms
 
 
-def _options(model_path: Path) -> FaceLandmarkerOptions:
+def _options(model_bytes: bytes) -> FaceLandmarkerOptions:
     return FaceLandmarkerOptions(
-        base_options=BaseOptions(model_asset_buffer=model_path.read_bytes()),
+        base_options=BaseOptions(model_asset_buffer=model_bytes),
         running_mode=RunningMode.VIDEO,
         num_faces=1,
         output_facial_transformation_matrixes=True,
