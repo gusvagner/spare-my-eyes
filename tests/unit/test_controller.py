@@ -95,3 +95,21 @@ def test_pause_for_during_calibration_cancels_it(first_launch: ControllerRig) ->
     first_launch.controller.pause_for(3600.0)
     assert not first_launch.controller.is_calibrating
     assert first_launch.controller.is_paused
+
+
+def test_apply_settings_saves_and_rebuilds_coaching_with_new_values(
+    log_recorder: RecordingLogHandler,
+) -> None:
+    rig = make_rig(CALIBRATED_SETTINGS, log_recorder)
+    rig.controller.apply_settings(replace(CALIBRATED_SETTINGS, break_interval_seconds=2.0))
+    assert rig.store.saved[-1].break_interval_seconds == 2.0
+    rig.driver.play(TimelineSegment(4.0))
+    assert rig.notifier.break_progress is not None
+    assert "settings_applied" in log_recorder.events()
+
+
+def test_apply_settings_keeps_known_camera_status(log_recorder: RecordingLogHandler) -> None:
+    rig = make_rig(CALIBRATED_SETTINGS, log_recorder)
+    rig.controller.on_camera_status(CameraStatus.UNAVAILABLE)
+    rig.controller.apply_settings(CALIBRATED_SETTINGS)
+    assert rig.notifier.status is TrayStatus.NO_CAMERA

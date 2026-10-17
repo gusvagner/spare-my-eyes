@@ -37,6 +37,12 @@ class JsonSettingsStore:
         temporary.write_text(content, encoding="utf-8")
         os.replace(temporary, self._path)
 
+    def ensure_file(self) -> Path:
+        if not self._path.exists():
+            self._path.parent.mkdir(parents=True, exist_ok=True)
+            self._path.write_text("{}\n", encoding="utf-8")
+        return self._path
+
     def _parse(self, text: str) -> dict[str, object] | None:
         try:
             parsed = json.loads(text)

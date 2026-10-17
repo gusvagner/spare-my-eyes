@@ -31,6 +31,7 @@ class EyeCareController:
         self._notifier = notifier
         self._clock = clock
         self._logger = logger
+        self._camera_status = CameraStatus.ACTIVE
         self._coach = coach_factory(settings)
         self._calibration: CalibrationSession | None = None
         if not settings.is_calibrated:
@@ -71,6 +72,7 @@ class EyeCareController:
             self._coach.tick()
 
     def on_camera_status(self, status: CameraStatus) -> None:
+        self._camera_status = status
         self._coach.on_camera_status(status)
         if status is not CameraStatus.ACTIVE:
             self._cancel_calibration()
@@ -91,6 +93,14 @@ class EyeCareController:
 
     def skip_break(self) -> None:
         self._coach.skip_break()
+
+    def apply_settings(self, settings: Settings) -> None:
+        self._coach.suspend()
+        self._settings = settings
+        self._store.save(settings)
+        self._coach = self._coach_factory(settings)
+        self._coach.on_camera_status(self._camera_status)
+        log_event(self._logger, logging.INFO, "settings_applied")
 
     def _cancel_calibration(self) -> None:
         if self._calibration is None:

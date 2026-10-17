@@ -54,3 +54,20 @@ def test_load_json_array_is_treated_as_corrupt(
     path.write_text("[1, 2]", encoding="utf-8")
     assert JsonSettingsStore(path, log_recorder.logger).load() == Settings()
     assert "settings_file_corrupt" in log_recorder.events()
+
+
+def test_ensure_file_missing_creates_empty_overrides(
+    tmp_path: Path, log_recorder: RecordingLogHandler
+) -> None:
+    path = tmp_path / "SpareMyEyes" / "settings.json"
+    assert JsonSettingsStore(path, log_recorder.logger).ensure_file() == path
+    assert path.read_text(encoding="utf-8") == "{}\n"
+
+
+def test_ensure_file_existing_file_is_left_untouched(
+    tmp_path: Path, log_recorder: RecordingLogHandler
+) -> None:
+    path = tmp_path / "settings.json"
+    path.write_text('{"window_side": "right"}', encoding="utf-8")
+    JsonSettingsStore(path, log_recorder.logger).ensure_file()
+    assert path.read_text(encoding="utf-8") == '{"window_side": "right"}'
