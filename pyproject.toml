@@ -1,0 +1,57 @@
+[project]
+name = "spare-my-eyes"
+version = "0.1.0"
+description = "A Windows tray app that watches how you blink and nudges you only when your eyes need it."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "mediapipe>=0.10.14",
+    "numpy>=1.26",
+    "pillow>=10.4",
+    "pystray>=0.19.5",
+]
+
+[project.scripts]
+spare-my-eyes = "spare_my_eyes.app:main"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.11",
+    "pyinstaller>=6.10",
+    "pytest>=8.3",
+    "ruff>=0.6",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/spare_my_eyes"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --strict-markers"
+markers = [
+    "mediapipe: runs the real MediaPipe Face Landmarker model",
+    "gui: creates real Tk windows or a tray icon",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["docs"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "SIM", "RUF"]
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+files = ["src", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["mediapipe.*", "pystray.*", "cv2.*"]
+ignore_missing_imports = true
