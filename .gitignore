@@ -10,3 +10,4 @@ dist/
 src/spare_my_eyes/assets/*.task
 src/spare_my_eyes/assets/*.download
 .superpowers/
+packaging/SpareMyEyes.ico

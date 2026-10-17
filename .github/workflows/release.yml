@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      INNO_COMPILER: C:\Program Files (x86)\Inno Setup 6\ISCC.exe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv python install 3.12
+      - run: uv sync --locked
+      - run: uv run python -m spare_my_eyes.model_asset
+      - run: uv run pytest
+      - run: uv run python -m spare_my_eyes.ui.app_icon packaging/SpareMyEyes.ico
+      - name: Build one-folder app
+        run: >
+          uv run pyinstaller --noconfirm --windowed --name SpareMyEyes
+          --icon packaging/SpareMyEyes.ico
+          --collect-all mediapipe
+          --add-data "src/spare_my_eyes/assets/face_landmarker.task;spare_my_eyes/assets"
+          packaging/launcher.py
+      - name: Smoke-test the packaged app
+        shell: pwsh
+        run: |
+          $data = Join-Path $env:RUNNER_TEMP "sme-smoke"
+          New-Item -ItemType Directory -Force $data | Out-Null
+          '{"open_ear_baseline": 0.3, "focal_scale": 660.0}' | Set-Content -Encoding utf8 (Join-Path $data "settings.json")
+          $process = Start-Process -FilePath "dist/SpareMyEyes/SpareMyEyes.exe" -ArgumentList "--scripted-camera normal --exit-after 5 --data-dir `"$data`"" -Wait -PassThru
+          if ($process.ExitCode -ne 0) { Get-Content (Join-Path $data "logs/spare-my-eyes.log"); exit 1 }
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          & $env:INNO_COMPILER "/DAppVersion=$version" packaging/installer.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Smoke-test install and uninstall
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          $target = Join-Path $env:RUNNER_TEMP "sme-install"
+          Start-Process "dist/SpareMyEyes-Setup-$version.exe" -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CURRENTUSER /TASKS=`"`" /DIR=`"$target`"" -Wait
+          if (-not (Test-Path "$target/SpareMyEyes.exe")) { Write-Error "Installer did not create $target/SpareMyEyes.exe"; exit 1 }
+          Start-Process "$target/unins000.exe" -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES" -Wait
+          for ($i = 0; $i -lt 30 -and (Test-Path "$target/SpareMyEyes.exe"); $i++) { Start-Sleep -Seconds 1 }
+          if (Test-Path "$target/SpareMyEyes.exe") { Write-Error "Uninstaller left $target/SpareMyEyes.exe"; exit 1 }
+      - name: Zip portable build
+        shell: pwsh
+        run: Compress-Archive -Path dist/SpareMyEyes -DestinationPath "dist/SpareMyEyes-${{ github.ref_name }}-portable.zip"
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/SpareMyEyes-Setup-*.exe
+            dist/SpareMyEyes-${{ github.ref_name }}-portable.zip
