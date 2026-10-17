@@ -50,6 +50,10 @@ class EyeCareController:
         return self._calibration is not None
 
     def recalibrate(self) -> None:
+        if self._camera_status is not CameraStatus.ACTIVE:
+            log_event(self._logger, logging.INFO, "recalibrate_skipped", camera=self._camera_status)
+            return
+        self._coach.resume()
         self._coach.suspend()
         now = self._clock.now()
         self._calibration = CalibrationSession(now)
@@ -95,11 +99,14 @@ class EyeCareController:
         self._coach.skip_break()
 
     def apply_settings(self, settings: Settings) -> None:
+        pause_remaining = self._coach.pause_remaining()
         self._coach.suspend()
         self._settings = settings
         self._store.save(settings)
         self._coach = self._coach_factory(settings)
         self._coach.on_camera_status(self._camera_status)
+        if pause_remaining is not None:
+            self._coach.pause_for(pause_remaining)
         log_event(self._logger, logging.INFO, "settings_applied")
 
     def _cancel_calibration(self) -> None:

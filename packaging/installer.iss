@@ -35,6 +35,7 @@ Name: "{autoprograms}\Spare My Eyes"; Filename: "{app}\SpareMyEyes.exe"
 Name: "{autodesktop}\Spare My Eyes"; Filename: "{app}\SpareMyEyes.exe"; Tasks: desktopicon
 
 [Registry]
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "SpareMyEyes"; ValueType: none; Flags: uninsdeletevalue
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "SpareMyEyes"; ValueData: """{app}\SpareMyEyes.exe"""; Flags: uninsdeletevalue; Tasks: startup
 
 [Run]

@@ -40,3 +40,14 @@ def test_camera_back_reports_monitoring() -> None:
     run.coach.on_camera_status(CameraStatus.UNAVAILABLE)
     run.coach.on_camera_status(CameraStatus.ACTIVE)
     assert run.notifier.status is TrayStatus.MONITORING
+
+
+def test_camera_unplugged_during_verified_break_switches_to_honor_system() -> None:
+    run = PipelineRun()
+    run.play(TimelineSegment(1202.0))
+    progress = run.notifier.break_progress
+    assert progress is not None and progress.verified
+    run.coach.on_camera_status(CameraStatus.UNAVAILABLE)
+    run.pass_time(2)
+    progress = run.notifier.break_progress
+    assert progress is not None and not progress.verified

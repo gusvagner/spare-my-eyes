@@ -71,3 +71,34 @@ def test_ensure_file_existing_file_is_left_untouched(
     path.write_text('{"window_side": "right"}', encoding="utf-8")
     JsonSettingsStore(path, log_recorder.logger).ensure_file()
     assert path.read_text(encoding="utf-8") == '{"window_side": "right"}'
+
+
+def test_save_after_corrupt_load_backs_up_original_file(
+    tmp_path: Path, log_recorder: RecordingLogHandler
+) -> None:
+    path = tmp_path / "settings.json"
+    path.write_text('{"window_side": "right",}', encoding="utf-8")
+    store = JsonSettingsStore(path, log_recorder.logger)
+    store.save(replace(store.load(), focal_scale=660.0))
+    backup = tmp_path / "settings.json.bak"
+    assert backup.read_text(encoding="utf-8") == '{"window_side": "right",}'
+
+
+def test_save_after_load_with_rejected_key_backs_up_original_file(
+    tmp_path: Path, log_recorder: RecordingLogHandler
+) -> None:
+    path = tmp_path / "settings.json"
+    path.write_text('{"window_sid": "right"}', encoding="utf-8")
+    store = JsonSettingsStore(path, log_recorder.logger)
+    store.save(store.load())
+    assert (tmp_path / "settings.json.bak").is_file()
+
+
+def test_save_after_clean_load_makes_no_backup(
+    tmp_path: Path, log_recorder: RecordingLogHandler
+) -> None:
+    path = tmp_path / "settings.json"
+    path.write_text('{"window_side": "right"}', encoding="utf-8")
+    store = JsonSettingsStore(path, log_recorder.logger)
+    store.save(store.load())
+    assert not (tmp_path / "settings.json.bak").exists()

@@ -41,10 +41,16 @@ class TrayIcon:
             describe_status(TrayStatus.MONITORING, None),
             menu=_menu(actions),
         )
+        self._shown_status = TrayStatus.MONITORING
 
     @property
     def title(self) -> str:
         return str(self._icon.title)
+
+    @property
+    def image(self) -> Image.Image:
+        image: Image.Image = self._icon.icon
+        return image
 
     def menu_labels(self) -> list[str]:
         return [str(item.text) for item in self._icon.menu.items]
@@ -56,8 +62,12 @@ class TrayIcon:
         self._icon.stop()
 
     def set_status(self, status: TrayStatus, blinks_per_minute: float | None) -> None:
-        self._icon.icon = status_icon_image(status)
-        self._icon.title = describe_status(status, blinks_per_minute)
+        if status is not self._shown_status:
+            self._icon.icon = status_icon_image(status)
+            self._shown_status = status
+        title = describe_status(status, blinks_per_minute)
+        if title != self._icon.title:
+            self._icon.title = title
 
 
 def _menu(actions: TrayMenuActions) -> pystray.Menu:

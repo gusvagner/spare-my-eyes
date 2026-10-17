@@ -33,3 +33,11 @@ def test_status_icon_image_differs_per_status() -> None:
     monitoring = status_icon_image(TrayStatus.MONITORING).getpixel((8, 32))
     no_camera = status_icon_image(TrayStatus.NO_CAMERA).getpixel((8, 32))
     assert monitoring != no_camera
+
+
+def test_set_status_unchanged_status_keeps_the_same_image() -> None:
+    tray = TrayIcon(ACTIONS)
+    tray.set_status(TrayStatus.PAUSED, None)
+    first = tray.image
+    tray.set_status(TrayStatus.PAUSED, None)
+    assert tray.image is first

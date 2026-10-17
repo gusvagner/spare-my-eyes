@@ -82,6 +82,15 @@ class Coach:
         self._suspend_camera_policies()
         self._breaks.suspend()
 
+    def resume(self) -> None:
+        self._paused_until = None
+        self._report_status()
+
+    def pause_remaining(self) -> float | None:
+        if self._paused_until is None:
+            return None
+        return max(0.0, self._paused_until - self._clock.now())
+
     def on_camera_status(self, status: CameraStatus) -> None:
         self._camera_status = status
         if status is CameraStatus.ACTIVE:

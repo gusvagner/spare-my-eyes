@@ -26,12 +26,14 @@ class ControllerRig:
     driver: TimelineDriver
 
 
-def make_rig(settings: Settings, log_recorder: RecordingLogHandler) -> ControllerRig:
+def make_rig(
+    settings: Settings, log_recorder: RecordingLogHandler, idle_seconds: float = 10_000.0
+) -> ControllerRig:
     clock = FakeClock()
     notifier = RecordingNotifier()
     store = InMemorySettingsStore(settings)
     factory = partial(
-        build_coach, clock=clock, notifier=notifier, idle=FakeIdleTimeProvider(10_000.0)
+        build_coach, clock=clock, notifier=notifier, idle=FakeIdleTimeProvider(idle_seconds)
     )
     controller = EyeCareController(settings, store, factory, notifier, clock, log_recorder.logger)
     driver = TimelineDriver(clock, controller.on_sample, controller.tick)
@@ -113,3 +115,33 @@ def test_apply_settings_keeps_known_camera_status(log_recorder: RecordingLogHand
     rig.controller.on_camera_status(CameraStatus.UNAVAILABLE)
     rig.controller.apply_settings(CALIBRATED_SETTINGS)
     assert rig.notifier.status is TrayStatus.NO_CAMERA
+
+
+def test_recalibrate_while_paused_ends_pause_so_camera_can_resume(
+    log_recorder: RecordingLogHandler,
+) -> None:
+    rig = make_rig(CALIBRATED_SETTINGS, log_recorder)
+    rig.controller.pause_for(3600.0)
+    rig.controller.recalibrate()
+    assert not rig.controller.is_paused
+    rig.driver.play(TimelineSegment(20.5))
+    assert not rig.controller.is_calibrating
+
+
+def test_recalibrate_without_camera_keeps_time_based_breaks(
+    log_recorder: RecordingLogHandler,
+) -> None:
+    settings = replace(CALIBRATED_SETTINGS, break_interval_seconds=5.0)
+    rig = make_rig(settings, log_recorder, idle_seconds=0.0)
+    rig.controller.on_camera_status(CameraStatus.UNAVAILABLE)
+    rig.controller.recalibrate()
+    assert not rig.controller.is_calibrating
+    rig.driver.pass_time(10)
+    assert rig.notifier.break_progress is not None
+
+
+def test_apply_settings_during_pause_keeps_the_pause(log_recorder: RecordingLogHandler) -> None:
+    rig = make_rig(CALIBRATED_SETTINGS, log_recorder)
+    rig.controller.pause_for(3600.0)
+    rig.controller.apply_settings(replace(CALIBRATED_SETTINGS, break_interval_seconds=600.0))
+    assert rig.controller.is_paused

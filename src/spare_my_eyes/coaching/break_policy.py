@@ -93,6 +93,8 @@ class BreakPolicy:
 
     def use_idle_time(self) -> None:
         self._camera_active = False
+        if self._session is not None and self._session.is_verified:
+            self._dismiss_card()
 
     def _advance(self, session: BreakSession, now: float, idle_seconds: float) -> None:
         if not session.is_verified:

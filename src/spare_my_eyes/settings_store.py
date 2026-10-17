@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import shutil
 from pathlib import Path
 from typing import Protocol
 
@@ -20,6 +21,7 @@ class JsonSettingsStore:
     def __init__(self, path: Path, logger: logging.Logger) -> None:
         self._path = path
         self._logger = logger
+        self._backup_before_save = False
 
     def load(self) -> Settings:
         if not self._path.exists():
@@ -27,15 +29,27 @@ class JsonSettingsStore:
         text = self._path.read_text(encoding="utf-8", errors="replace")
         overrides = self._parse(text)
         if overrides is None:
+            self._backup_before_save = True
             return Settings()
-        return settings_from_overrides(overrides, self._logger)
+        settings = settings_from_overrides(overrides, self._logger)
+        self._backup_before_save = not set(overrides) <= set(settings_to_overrides(settings))
+        return settings
 
     def save(self, settings: Settings) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
+        self._back_up_original_once()
         temporary = self._path.with_suffix(".json.tmp")
         content = json.dumps(settings_to_overrides(settings), indent=2) + "\n"
         temporary.write_text(content, encoding="utf-8")
         os.replace(temporary, self._path)
+
+    def _back_up_original_once(self) -> None:
+        if not self._backup_before_save or not self._path.exists():
+            return
+        backup = self._path.with_suffix(".json.bak")
+        shutil.copy2(self._path, backup)
+        self._backup_before_save = False
+        log_event(self._logger, logging.WARNING, "settings_backed_up", backup=str(backup))
 
     def ensure_file(self) -> Path:
         if not self._path.exists():
