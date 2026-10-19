@@ -3,6 +3,7 @@ from collections.abc import Iterator
 import pytest
 
 from spare_my_eyes.capture.camera_errors import CameraBusyError
+from spare_my_eyes.capture.camera_preview_feed import CameraPreviewFeed
 from spare_my_eyes.capture.camera_sample_source import CameraFaceSampleSource
 from spare_my_eyes.capture.frame_source import FrameSource
 from spare_my_eyes.capture.mediapipe_landmarker import MediaPipeFaceLandmarker
@@ -18,7 +19,9 @@ pytestmark = pytest.mark.mediapipe
 
 
 def opened_source(frames: FrameSource, clock: FakeClock) -> Iterator[CameraFaceSampleSource]:
-    source = CameraFaceSampleSource(frames, MediaPipeFaceLandmarker(MODEL_PATH), clock)
+    source = CameraFaceSampleSource(
+        frames, MediaPipeFaceLandmarker(MODEL_PATH), clock, CameraPreviewFeed()
+    )
     source.open()
     try:
         yield source
@@ -57,6 +60,8 @@ def test_next_sample_busy_camera_raises_camera_busy() -> None:
 def test_build_sample_source_with_model_returns_camera_source(
     log_recorder: RecordingLogHandler,
 ) -> None:
-    source = build_sample_source(None, Settings(), FakeClock(), log_recorder.logger)
+    source = build_sample_source(
+        None, Settings(), FakeClock(), CameraPreviewFeed(), log_recorder.logger
+    )
     assert isinstance(source, CameraFaceSampleSource)
     source.close()

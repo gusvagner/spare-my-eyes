@@ -2,6 +2,7 @@ from spare_my_eyes.analysis.blink_detector import BlinkDetector
 from spare_my_eyes.analysis.blink_rate import BlinkRateMonitor
 from spare_my_eyes.analysis.distance import DistanceThresholds, ScreenDistanceEstimator
 from spare_my_eyes.analysis.gaze import WindowGazeDetector
+from spare_my_eyes.analysis.live_readout import LiveReadout
 from spare_my_eyes.analysis.presence import PresenceTracker
 from spare_my_eyes.clock import Clock
 from spare_my_eyes.coaching.blink_nudge import BlinkNudgePolicy, BlinkNudgeRules
@@ -26,6 +27,13 @@ def build_coach(
     distance = _distance_alert_policy(settings, notifier)
     breaks = _break_policy(settings, baseline, notifier, clock)
     return Coach([nudge, distance], breaks, nudge.current_rate, idle, notifier, clock)
+
+
+def build_live_readout(settings: Settings) -> LiveReadout:
+    baseline = settings.open_ear_baseline or DEFAULT_OPEN_EAR
+    estimator = ScreenDistanceEstimator(settings.focal_scale or DEFAULT_FOCAL_SCALE)
+    gaze = WindowGazeDetector(settings.window_side, settings.break_min_yaw_degrees)
+    return LiveReadout(BlinkDetector(baseline), estimator, gaze, baseline)
 
 
 def _blink_nudge_policy(

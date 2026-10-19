@@ -5,7 +5,7 @@ from functools import partial
 
 import pytest
 
-from spare_my_eyes.app_runtime import AppRuntime, RuntimeChannels, UserCommand
+from spare_my_eyes.app_runtime import AppRuntime, AppWindows, RuntimeChannels, UserCommand
 from spare_my_eyes.capture.sample_source import CameraStatus
 from spare_my_eyes.capture.worker import CameraStatusChanged
 from spare_my_eyes.coaching.controller import EyeCareController
@@ -38,14 +38,19 @@ class RuntimeRig:
     clock: FakeClock
 
 
-def make_rig(log: RecordingLogHandler, open_settings: Callable[[], None]) -> RuntimeRig:
+def make_rig(
+    log: RecordingLogHandler,
+    open_settings: Callable[[], None],
+    show_camera: Callable[[], None] | None = None,
+) -> RuntimeRig:
     clock, notifier = FakeClock(), RecordingNotifier()
     factory = partial(build_coach, clock=clock, notifier=notifier, idle=FakeIdleTimeProvider(0.0))
     store = InMemorySettingsStore(CALIBRATED_SETTINGS)
     controller = EyeCareController(CALIBRATED_SETTINGS, store, factory, notifier, clock, log.logger)
     loop, worker, tray = FakeMainLoop(), FakeCaptureWorker(), FakeTray()
     channels = RuntimeChannels(queue.Queue(), queue.Queue())
-    runtime = AppRuntime(loop, controller, worker, tray, channels, open_settings, clock, log.logger)
+    windows = AppWindows(open_settings, show_camera or RecordingCallback())
+    runtime = AppRuntime(loop, controller, worker, tray, channels, windows, clock, log.logger)
     return RuntimeRig(runtime, loop, worker, tray, channels, controller, notifier, clock)
 
 
@@ -91,6 +96,16 @@ def test_pump_open_settings_command_opens_settings_window(
     opener = RecordingCallback()
     rig = make_rig(log_recorder, opener)
     rig.channels.commands.put(UserCommand.OPEN_SETTINGS)
+    rig.runtime.pump()
+    assert opener.calls == 1
+
+
+def test_pump_show_camera_command_opens_camera_window(
+    log_recorder: RecordingLogHandler,
+) -> None:
+    opener = RecordingCallback()
+    rig = make_rig(log_recorder, RecordingCallback(), opener)
+    rig.channels.commands.put(UserCommand.SHOW_CAMERA)
     rig.runtime.pump()
     assert opener.calls == 1
 

@@ -7,6 +7,7 @@ import numpy as np
 from mediapipe.tasks.python import BaseOptions
 from mediapipe.tasks.python.vision import FaceLandmarker, FaceLandmarkerOptions, RunningMode
 
+from spare_my_eyes.capture.face_detection import FaceDetection
 from spare_my_eyes.capture.face_sample import FaceSample
 from spare_my_eyes.capture.frame_source import Frame
 from spare_my_eyes.capture.geometry import Point, eye_aspect_ratio, iris_diameter, yaw_degrees
@@ -15,6 +16,7 @@ RIGHT_EYE = (33, 160, 158, 133, 153, 144)
 LEFT_EYE = (362, 385, 387, 263, 373, 380)
 RIGHT_IRIS = (469, 470, 471, 472)
 LEFT_IRIS = (474, 475, 476, 477)
+PREVIEW_POINTS = RIGHT_EYE + LEFT_EYE + RIGHT_IRIS + LEFT_IRIS
 
 
 class MediaPipeFaceLandmarker:
@@ -28,17 +30,18 @@ class MediaPipeFaceLandmarker:
         self._landmarker: FaceLandmarker | None = None
         self._last_timestamp_ms = -1
 
-    def detect(self, frame: Frame, timestamp: float) -> FaceSample:
+    def detect(self, frame: Frame, timestamp: float) -> FaceDetection:
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
         landmarker = self._open_landmarker()
         result = landmarker.detect_for_video(image, self._next_timestamp_ms(timestamp))
         if not result.face_landmarks:
-            return FaceSample.absent(timestamp)
+            return FaceDetection(FaceSample.absent(timestamp))
         height, width = frame.shape[:2]
         landmarks = result.face_landmarks[0]
         points = [(float(mark.x) * width, float(mark.y) * height) for mark in landmarks]
-        return _sample_from(points, result.facial_transformation_matrixes[0], timestamp)
+        sample = _sample_from(points, result.facial_transformation_matrixes[0], timestamp)
+        return FaceDetection(sample, tuple(_pick(points, PREVIEW_POINTS)))
 
     def close(self) -> None:
         if self._landmarker is None:

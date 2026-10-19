@@ -14,6 +14,12 @@ Run these with a real webcam before each release. Note the date, webcam model an
 - [ ] `settings.json` afterwards contains `open_ear_baseline` and `focal_scale`.
 - [ ] Tray → Recalibrate runs it again and updates both values.
 
+## Camera window
+- [ ] Tray → Show camera shows the mirrored webcam image with green dots on both eyelids and irises.
+- [ ] Turning the head to your left reads "Head turn: … left"; to your right reads "… right".
+- [ ] A full blink adds to "complete"; a half blink adds to "incomplete".
+- [ ] During Pause for 1 hour the window shows the waiting message; closing it releases nothing else.
+
 ## Settings window
 - [ ] Tray → Settings opens one window; choosing it again brings the same window to the front.
 - [ ] Typing 200 in "Break every" and pressing Save shows the problem and keeps the window open.

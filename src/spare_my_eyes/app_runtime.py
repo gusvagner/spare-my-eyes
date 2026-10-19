@@ -19,6 +19,7 @@ class UserCommand(StrEnum):
     SNOOZE_BREAK = "snooze_break"
     SKIP_BREAK = "skip_break"
     RECALIBRATE = "recalibrate"
+    SHOW_CAMERA = "show_camera"
     OPEN_SETTINGS = "open_settings"
     QUIT = "quit"
 
@@ -51,6 +52,12 @@ class TrayLifecycle(Protocol):
 
 
 @dataclass(frozen=True, slots=True)
+class AppWindows:
+    open_settings: Callable[[], None]
+    show_camera: Callable[[], None]
+
+
+@dataclass(frozen=True, slots=True)
 class RuntimeChannels:
     capture: queue.Queue[CaptureMessage]
     commands: queue.Queue[UserCommand]
@@ -70,7 +77,7 @@ class AppRuntime:
         worker: CaptureControl,
         tray: TrayLifecycle,
         channels: RuntimeChannels,
-        open_settings: Callable[[], None],
+        windows: AppWindows,
         clock: Clock,
         logger: logging.Logger,
     ) -> None:
@@ -79,7 +86,7 @@ class AppRuntime:
         self._worker = worker
         self._tray = tray
         self._channels = channels
-        self._open_settings = open_settings
+        self._windows = windows
         self._clock = clock
         self._logger = logger
         self._next_tick_at = clock.now()
@@ -119,7 +126,8 @@ class AppRuntime:
             UserCommand.SNOOZE_BREAK: self._controller.snooze_break,
             UserCommand.SKIP_BREAK: self._controller.skip_break,
             UserCommand.RECALIBRATE: self._controller.recalibrate,
-            UserCommand.OPEN_SETTINGS: self._open_settings,
+            UserCommand.SHOW_CAMERA: self._windows.show_camera,
+            UserCommand.OPEN_SETTINGS: self._windows.open_settings,
             UserCommand.QUIT: self.quit,
         }
 

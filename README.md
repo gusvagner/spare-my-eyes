@@ -50,6 +50,8 @@ Right-click the eye icon in the system tray:
 - **Pause for 1 hour**: stops all reminders and turns the camera off.
 - **Start break now**
 - **Recalibrate**: run calibration again, for example after moving your webcam.
+- **Show camera**: opens a window with the webcam image, the eye points the app tracks, and
+  live readings (eye openness, blink count, distance, head turn). Nothing is saved or sent.
 - **Settings**: opens the settings window.
 - **Quit**
 

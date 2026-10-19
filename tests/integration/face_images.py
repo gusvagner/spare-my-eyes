@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import pytest
 
+from spare_my_eyes.capture.face_detection import FaceDetection
 from spare_my_eyes.capture.face_sample import FaceSample
 from spare_my_eyes.capture.frame_source import Frame
 from spare_my_eyes.capture.mediapipe_landmarker import MediaPipeFaceLandmarker
@@ -37,6 +38,10 @@ def shrink_into_canvas(frame: Frame, factor: float) -> Frame:
 
 
 def detect_once(frame: Frame) -> FaceSample:
+    return detect_with_points(frame).sample
+
+
+def detect_with_points(frame: Frame) -> FaceDetection:
     if not MODEL_PATH.is_file():
         pytest.fail(
             f"Model missing at {MODEL_PATH}; run `uv run python -m spare_my_eyes.model_asset`"

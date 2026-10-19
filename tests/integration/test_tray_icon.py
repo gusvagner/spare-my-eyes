@@ -10,7 +10,7 @@ def do_nothing() -> None:
     return None
 
 
-ACTIONS = TrayMenuActions(do_nothing, do_nothing, do_nothing, do_nothing, do_nothing)
+ACTIONS = TrayMenuActions(do_nothing, do_nothing, do_nothing, do_nothing, do_nothing, do_nothing)
 
 
 def test_menu_labels_match_spec() -> None:
@@ -18,6 +18,7 @@ def test_menu_labels_match_spec() -> None:
         "Pause for 1 hour",
         "Start break now",
         "Recalibrate",
+        "Show camera",
         "Settings",
         "Quit",
     ]

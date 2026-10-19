@@ -21,6 +21,7 @@ class TrayMenuActions:
     pause_for_hour: Callable[[], None]
     start_break: Callable[[], None]
     recalibrate: Callable[[], None]
+    show_camera: Callable[[], None]
     open_settings: Callable[[], None]
     quit: Callable[[], None]
 
@@ -75,6 +76,7 @@ def _menu(actions: TrayMenuActions) -> pystray.Menu:
         pystray.MenuItem("Pause for 1 hour", lambda: actions.pause_for_hour()),
         pystray.MenuItem("Start break now", lambda: actions.start_break()),
         pystray.MenuItem("Recalibrate", lambda: actions.recalibrate()),
+        pystray.MenuItem("Show camera", lambda: actions.show_camera()),
         pystray.MenuItem("Settings", lambda: actions.open_settings()),
         pystray.MenuItem("Quit", lambda: actions.quit()),
     )

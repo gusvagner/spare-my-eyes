@@ -9,7 +9,8 @@ from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 
-from spare_my_eyes.app_runtime import AppRuntime, RuntimeChannels, UserCommand
+from spare_my_eyes.app_runtime import AppRuntime, AppWindows, RuntimeChannels, UserCommand
+from spare_my_eyes.capture.camera_preview_feed import CameraPreviewFeed
 from spare_my_eyes.capture.scenarios import SCENARIOS
 from spare_my_eyes.capture.source_factory import build_sample_source
 from spare_my_eyes.capture.worker import CaptureWorker
@@ -28,6 +29,7 @@ from spare_my_eyes.system.startup_registration import (
     installed_executable,
 )
 from spare_my_eyes.ui.break_card import BreakCard
+from spare_my_eyes.ui.camera_preview_window import CameraPreviewOpener
 from spare_my_eyes.ui.card_window import CardWindow
 from spare_my_eyes.ui.message_overlay import MessageOverlay
 from spare_my_eyes.ui.notification_text import snooze_label
@@ -87,11 +89,15 @@ def _build_runtime(
     tray = TrayIcon(_tray_actions(channels.commands))
     notifier = _build_notifier(root, tray, channels.commands, settings, logger)
     controller = _build_controller(settings, store, notifier, clock, logger)
-    source = build_sample_source(options.scripted_camera, settings, clock, logger)
+    preview = CameraPreviewFeed()
+    source = build_sample_source(options.scripted_camera, settings, clock, preview, logger)
     worker = CaptureWorker(source, channels.capture, settings.camera_retry_seconds, logger)
-    open_settings = _settings_opener(root, controller, store)
+    windows = AppWindows(
+        open_settings=_settings_opener(root, controller, store),
+        show_camera=CameraPreviewOpener(root, preview, lambda: controller.settings, clock),
+    )
     loop = TkMainLoop(root)
-    return AppRuntime(loop, controller, worker, tray, channels, open_settings, clock, logger)
+    return AppRuntime(loop, controller, worker, tray, channels, windows, clock, logger)
 
 
 def _build_controller(
@@ -134,6 +140,7 @@ def _tray_actions(commands: queue.Queue[UserCommand]) -> TrayMenuActions:
         pause_for_hour=lambda: commands.put(UserCommand.PAUSE_FOR_HOUR),
         start_break=lambda: commands.put(UserCommand.START_BREAK),
         recalibrate=lambda: commands.put(UserCommand.RECALIBRATE),
+        show_camera=lambda: commands.put(UserCommand.SHOW_CAMERA),
         open_settings=lambda: commands.put(UserCommand.OPEN_SETTINGS),
         quit=lambda: commands.put(UserCommand.QUIT),
     )

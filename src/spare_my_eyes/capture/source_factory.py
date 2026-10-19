@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 
+from spare_my_eyes.capture.camera_preview_feed import CameraPreviewFeed
 from spare_my_eyes.capture.camera_sample_source import CameraFaceSampleSource
 from spare_my_eyes.capture.mediapipe_landmarker import MediaPipeFaceLandmarker
 from spare_my_eyes.capture.opencv_frame_source import OpenCvFrameSource
@@ -17,6 +18,7 @@ def build_sample_source(
     scripted_camera: str | None,
     settings: Settings,
     clock: Clock,
+    preview: CameraPreviewFeed,
     logger: logging.Logger,
     model_path: Path = MODEL_PATH,
 ) -> FaceSampleSource:
@@ -29,7 +31,7 @@ def build_sample_source(
             "run `uv run python -m spare_my_eyes.model_asset`"
         )
     frames = OpenCvFrameSource(settings.camera_index, fps=settings.frames_per_second)
-    return CameraFaceSampleSource(frames, MediaPipeFaceLandmarker(model_path), clock)
+    return CameraFaceSampleSource(frames, MediaPipeFaceLandmarker(model_path), clock, preview)
 
 
 def _scripted_source(name: str, settings: Settings, clock: Clock) -> ScriptedFaceSampleSource:

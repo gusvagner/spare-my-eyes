@@ -5,7 +5,13 @@ import numpy as np
 import pytest
 
 from spare_my_eyes.capture.mediapipe_landmarker import MediaPipeFaceLandmarker
-from tests.integration.face_images import blank_frame, detect_once, load_face, shrink_into_canvas
+from tests.integration.face_images import (
+    blank_frame,
+    detect_once,
+    detect_with_points,
+    load_face,
+    shrink_into_canvas,
+)
 
 pytestmark = pytest.mark.mediapipe
 
@@ -47,6 +53,18 @@ def test_detect_face_farther_away_reports_smaller_iris() -> None:
 
 def test_detect_blank_frame_reports_no_face() -> None:
     assert not detect_once(blank_frame()).face_present
+
+
+def test_detect_blank_frame_reports_no_eye_points() -> None:
+    assert detect_with_points(blank_frame()).eye_points == ()
+
+
+def test_detect_frontal_face_reports_eye_and_iris_points_inside_the_frame() -> None:
+    frame = load_face("frontal_eyes_open.jpg")
+    points = detect_with_points(frame).eye_points
+    height, width = frame.shape[:2]
+    assert len(points) == 20
+    assert all(0 <= x <= width and 0 <= y <= height for x, y in points)
 
 
 def test_init_missing_model_raises_file_not_found_with_command(tmp_path: Path) -> None:
